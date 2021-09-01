@@ -226,7 +226,7 @@ function playerWithVorp(replacementValue: number, replacementPerGame: number) {
   };
 }
 
-function calculatePlayerVORP(
+export function calculatePlayerVORP(
   playerStats: FantasyDataPlayer[],
   position: string
 ): VorpResult {
@@ -296,16 +296,31 @@ function playerToRow(playerData: PlayerWithVORP) {
   ];
 }
 
-function generateCSV() {
+export function allPlayersWithVorp(): PlayerWithVORP[] {
   const { players: qbs } = calculatePlayerVORP(playerStats, "QB");
   const { players: rbs } = calculatePlayerVORP(playerStats, "RB");
   const { players: wrs } = calculatePlayerVORP(playerStats, "WR");
   const { players: tes } = calculatePlayerVORP(playerStats, "TE");
   const { players: ks } = calculatePlayerVORP(playerStats, "K");
-  const allPlayers = [...qbs, ...rbs, ...wrs, ...tes, ...ks];
-  const nans = allPlayers.filter((p) => isNaN(p.vorpPerGame));
-  console.log(`Found ${nans.length} nan vorpPerGame`, nans[0]);
-  const dataStr = allPlayers
+  return [...qbs, ...rbs, ...wrs, ...tes, ...ks];
+}
+
+interface PlayersWithVORPById {
+  [key: string]: PlayerWithVORP;
+}
+
+export function playersWithVorpByPlayerId(): PlayersWithVORPById {
+  return allPlayersWithVorp().reduce(
+    (acc, p) => ({
+      ...acc,
+      [p.meta.player.PlayerID]: p,
+    }),
+    {}
+  );
+}
+
+function generateCSV() {
+  const dataStr = allPlayersWithVorp()
     .map(playerToRow)
     .map((r) => r.join(", "))
     .join("\n");
