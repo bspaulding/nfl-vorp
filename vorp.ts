@@ -1,7 +1,6 @@
-const playerStats2020Reg = JSON.parse(
-  await Deno.readTextFile("./2020REG.json")
-);
-const playerStats = playerStats2020Reg;
+const file = Deno.args[0];
+console.log(`Reading stats from ${file}`);
+const playerStats = JSON.parse(await Deno.readTextFile(file));
 
 const scoring = {
   passing: {
