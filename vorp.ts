@@ -189,7 +189,6 @@ function mean(xs: number[]) {
 const leagueSize = 12;
 function replacementPlayerValue(players: FantasyDataPlayer[]) {
   const sorted = sortByPoints(players);
-
   // use average points
   // result: terrible, too much junk at the bottom
   // return sorted.map(p => p.points.total).reduce((x, y) => x + y, 0) / sorted.length;
@@ -198,11 +197,14 @@ function replacementPlayerValue(players: FantasyDataPlayer[]) {
   // result: seems okish? differences are not as pronounced as point totals would indicate
   // return median(sorted.slice(leagueSize, leagueSize * 2).map(p => p.points.total))
 
-  // use the mean of some multiples of the league size, excluding starters
-  // result:
-  return mean(
-    sorted.slice(leagueSize, leagueSize * 2).map((p) => p.points.total)
-  );
+  // some multiples of the league size, excluding starters
+  // 👆🏻 used this for 2020, realized that this slice of replacement players should probably
+  // be different per position?
+  const position = players[0].Position;
+  const replacementPlayers = sorted.slice(leagueSize, leagueSize * 2);
+
+  // use the mean of replacement players totals
+  return mean(replacementPlayers.map((p) => p.points.total));
 }
 
 interface PlayerWithVORP extends PlayerWithScore {
@@ -232,7 +234,7 @@ export function calculatePlayerVORP(
   const players = playerStats.filter((p) => p.Position === position);
   const replacementValue = replacementPlayerValue(players);
   // TODO: is 16 the right number of games?
-  const replacementPerGame = Math.round(replacementPlayerValue(players) / 16);
+  const replacementPerGame = Math.round(replacementValue / 16);
   return {
     players: sortByPoints(players).map(
       playerWithVorp(replacementValue, replacementPerGame)
