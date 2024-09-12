@@ -4,6 +4,6 @@ WORKDIR /vorp
 
 COPY vorp.ts vorp.ts
 COPY vorp-csv.ts vorp-csv.ts
-COPY vorp-server.ts vorp-server.ts
+COPY vorp-cli.ts vorp-cli.ts
 
-ENTRYPOINT ["deno", "run", "--allow-net", "vorp-server.ts"]
+ENTRYPOINT ["deno", "run", "--allow-net", "vorp-cli.ts"]
