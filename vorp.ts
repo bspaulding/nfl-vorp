@@ -240,35 +240,6 @@ export function calculatePlayerVORP(
   };
 }
 
-function printTop10(position: string) {
-  const { players, replacementValue, replacementPerGame } = calculatePlayerVORP(
-    playerStats,
-    position
-  );
-
-  console.log(`-------------------------------------------`);
-  console.log(`Top 10 ${position}s (of ${players.length}) `);
-  console.log(
-    `  Replacement Value: ${replacementPerGame}pts per game,  ${Math.round(
-      replacementValue
-    )}pts total`
-  );
-  console.log(`-------------------------------------------`);
-  console.log(
-    players
-      .slice(0, 12)
-      .map(
-        (r, i) =>
-          `${i + 1}. ${r.name}: ${Math.round(
-            r.points.perGame - replacementPerGame
-          )}pt VORP. ${Math.round(r.points.perGame)}pts per game, ${Math.round(
-            r.points.total
-          )}pts total.`
-      )
-      .join("\n")
-  );
-}
-
 export function allPlayersWithVorp(playerStats): PlayerWithVORP[] {
   const { players: qbs } = calculatePlayerVORP(playerStats, "QB");
   const { players: rbs } = calculatePlayerVORP(playerStats, "RB");

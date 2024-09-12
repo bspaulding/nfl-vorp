@@ -1,4 +1,5 @@
 import { allPlayersWithVorp, calculatePlayerVORP } from "./vorp.ts";
+import { generateCSV } from "./vorp-csv.ts";
 
 const file = Deno.args[0];
 console.log(`Reading stats from ${file}`);
@@ -9,40 +10,8 @@ console.log(`Writing vorp to ${outfile}`);
 writeCSV(outfile);
 
 function writeCSV(fileName: string) {
-  Deno.writeTextFile(fileName, generateCSV());
-}
-
-function playerToRow(playerData: PlayerWithVORP) {
-  const p = playerData.meta.player;
-  return [
-    p.Name,
-    p.Team,
-    p.Position,
-    p.Season,
-    playerData.vorpRaw,
-    playerData.vorpPerGame,
-    playerData.points.total,
-    playerData.points.perGame,
-  ];
-}
-
-function generateCSV() {
-  const header = [
-    "Name",
-    "Team",
-    "Position",
-    "Season",
-    "VORP Raw",
-    "VORP Per Game",
-    "Points Total",
-    "Points Per Game",
-  ];
-
-  const dataStr = allPlayersWithVorp(playerStats)
-    .map(playerToRow)
-    .map((r) => r.join(", "))
-    .join("\n");
-  return [header.join(", "), dataStr].join("\n");
+  const data = allPlayersWithVorp(playerStats);
+  Deno.writeTextFile(fileName, generateCSV(data));
 }
 
 function printTop10(position: string) {
