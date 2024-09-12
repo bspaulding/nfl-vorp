@@ -1,7 +1,3 @@
-const file = Deno.args[0];
-console.log(`Reading stats from ${file}`);
-const playerStats = JSON.parse(await Deno.readTextFile(file));
-
 const scoring = {
   passing: {
     pointsPerYard: 1 / 25,
@@ -273,31 +269,7 @@ function printTop10(position: string) {
   );
 }
 
-const header = [
-  "Name",
-  "Team",
-  "Position",
-  "Season",
-  "VORP Raw",
-  "VORP Per Game",
-  "Points Total",
-  "Points Per Game",
-];
-function playerToRow(playerData: PlayerWithVORP) {
-  const p = playerData.meta.player;
-  return [
-    p.Name,
-    p.Team,
-    p.Position,
-    p.Season,
-    playerData.vorpRaw,
-    playerData.vorpPerGame,
-    playerData.points.total,
-    playerData.points.perGame,
-  ];
-}
-
-export function allPlayersWithVorp(): PlayerWithVORP[] {
+export function allPlayersWithVorp(playerStats): PlayerWithVORP[] {
   const { players: qbs } = calculatePlayerVORP(playerStats, "QB");
   const { players: rbs } = calculatePlayerVORP(playerStats, "RB");
   const { players: wrs } = calculatePlayerVORP(playerStats, "WR");
@@ -318,45 +290,4 @@ export function playersWithVorpByPlayerId(): PlayersWithVORPById {
     }),
     {}
   );
-}
-
-function generateCSV() {
-  const dataStr = allPlayersWithVorp()
-    .map(playerToRow)
-    .map((r) => r.join(", "))
-    .join("\n");
-  return [header.join(", "), dataStr].join("\n");
-}
-
-printTop10("QB");
-printTop10("RB");
-printTop10("WR");
-printTop10("TE");
-printTop10("K");
-
-const positions = Object.keys(
-  playerStats.reduce(
-    (acc: [string: number], p: FantasyDataPlayer) => ({
-      ...acc,
-      [p.Position]: 1,
-    }),
-    {}
-  )
-);
-// console.log({ positions })
-
-// skipping defense because its more complex and doesn't matter
-// const defensivePositions = ['CB', 'DE', 'OLB', 'NT', 'FS', 'SS', 'DT', 'DB', 'ILB', 'LB', 'DL', 'S'];
-// const defPlayers = playerStats.filter(p => defensivePositions.indexOf(p.Position) >= 0);
-// console.log(`Top 10 DEFs:`)
-// const defPointsByTeam = defPlayers.reduce((acc, p) => ({
-//     ...acc,
-//     [p.Team]: (acc[p.Team] || 0) + playerFantasyPoints(p).total
-// }), {});
-// console.log(defPointsByTeam)
-
-writeCSV("out.csv");
-
-export function writeCSV(fileName: string) {
-  Deno.writeTextFile(fileName, generateCSV());
 }
