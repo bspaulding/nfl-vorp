@@ -1,4 +1,4 @@
-name: Fetch Data
+name: Recalculate Season VORP
 
 on:
   schedule:
