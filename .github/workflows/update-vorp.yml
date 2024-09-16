@@ -19,6 +19,7 @@ jobs:
         name: player-data
         path: ${{ env.season }}.json
   calculate-vorp:
+    needs: fetch-player-data
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/bspaulding/nfl-vorp:main
