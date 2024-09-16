@@ -2,7 +2,7 @@ name: Recalculate Season VORP
 
 on:
   schedule:
-    - cron: "30 8 * * 2"
+    - cron: "30 6 * * 2"
   workflow_dispatch:
 
 permissions:
