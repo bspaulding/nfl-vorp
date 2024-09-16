@@ -10,14 +10,25 @@ permissions:
 env:
   season: 2024
 jobs:
+  fetch-player-data:
+    runs-on: ubuntu-latest
+    steps:
+    - run: curl -O http://nfl-stats.motingo.com.s3-website-us-east-1.amazonaws.com/api/players/${{ env.season }}.json
+    - uses: actions/upload-artifact@v4
+      with:
+        name: player-data
+        path: ${{ env.season }}.json
   calculate-vorp:
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/bspaulding/nfl-vorp:main
     steps:
-    - run: curl -O http://nfl-stats.motingo.com.s3-website-us-east-1.amazonaws.com/api/players/${{ env.season }}.json
+    - uses: actions/upload-artifact@v4
+      with:
+        name: player-data
+        path: player-data
     - name: Calculate VORP
-      run: deno run --allow-read --allow-write /vorp/vorp-cli.ts ${{ env.season }}.json
+      run: deno run --allow-read --allow-write /vorp/vorp-cli.ts player-data/${{ env.season }}.json
     - name: Upload vorp
       uses: actions/upload-artifact@v4
       with:
