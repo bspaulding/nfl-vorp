@@ -1,0 +1,43 @@
+name: Fetch Data
+
+on:
+  schedule:
+    - cron: "30 8 * * 2"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+env:
+  season: 2024
+jobs:
+  calculate-vorp:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/bspaulding/nfl-vorp:main
+    steps:
+    - run: curl -O http://nfl-stats.motingo.com.s3-website-us-east-1.amazonaws.com/api/players/${{ env.season }}.json
+    - name: Calculate VORP
+      run: deno run --allow-read --allow-write /vorp/vorp-cli.ts ${{ env.season }}.json
+    - name: Upload vorp
+      uses: actions/upload-artifact@v4
+      with:
+        name: vorp
+        path: out.csv
+  upload-vorp:
+    needs: calculate-vorp
+    runs-on: ubuntu-latest
+    container:
+      image: public.ecr.aws/amazonlinux/amazonlinux:latest
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+    steps:
+    - run: yum update && yum install -y awscli
+    - name: Download vorp
+      uses: actions/download-artifact@v4
+      with:
+        name: vorp
+        path: vorp
+    - name: Upload vorp to S3
+      run: aws s3 cp ./vorp/out.csv s3://nfl-stats.motingo.com/api/vorp/${{ env.season }}.csv
