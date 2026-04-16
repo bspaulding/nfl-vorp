@@ -82,6 +82,7 @@ type FantasyDataPlayer = {
   FieldGoalsMade50Plus: number;
   ExtraPointsMade: number;
   ExtraPointsAttempted: number;
+  Fumbles: number;
 };
 function playerFantasyPoints(player: FantasyDataPlayer): FantasyPoints {
   const passing =
@@ -117,8 +118,7 @@ function playerFantasyPoints(player: FantasyDataPlayer): FantasyPoints {
   // TODO: specialTeamsPlayer
   const specialTeamsPlayer = 0;
 
-  // TODO: general
-  const general = 0;
+  const general = scoring.general.fumble * (player.Fumbles ?? 0);
 
   const total =
     passing +
@@ -182,25 +182,51 @@ function mean(xs: number[]) {
   return xs.reduce((x, y) => x + y, 0) / xs.length;
 }
 
-const leagueSize = 12;
-function replacementPlayerValue(players: FantasyDataPlayer[]) {
-  const sorted = sortByPoints(players);
-  // use average points
-  // result: terrible, too much junk at the bottom
-  // return sorted.map(p => p.points.total).reduce((x, y) => x + y, 0) / sorted.length;
+// Minimum games played for a player to be considered for the replacement pool.
+// Excludes backups who appeared in only 1-2 games from skewing the baseline.
+const MIN_GAMES_FOR_REPLACEMENT = 4;
 
-  // use the median of some multiples of the league size, excluding starters
-  // result: seems okish? differences are not as pronounced as point totals would indicate
-  // return median(sorted.slice(leagueSize, leagueSize * 2).map(p => p.points.total))
+// Starter slots per position in a standard 12-team league with 1 FLEX (RB/WR/TE).
+// The replacement player is the next available player after all starting slots are filled.
+// RBs and WRs each absorb roughly half the FLEX slot on average.
+const positionStarterSlots: Record<string, number> = {
+  QB: 1,
+  RB: 2.5, // 2 starters + ~0.5 share of FLEX
+  WR: 2.5, // 2 starters + ~0.5 share of FLEX
+  TE: 1,
+  K: 1,
+};
 
-  // some multiples of the league size, excluding starters
-  // 👆🏻 used this for 2020, realized that this slice of replacement players should probably
-  // be different per position?
+function replacementPlayerPool(
+  players: FantasyDataPlayer[],
+  leagueSize: number
+): PlayerWithScore[] {
   const position = players[0].Position;
-  const replacementPlayers = sorted.slice(leagueSize, leagueSize * 2);
+  const starterSlots = positionStarterSlots[position] ?? 1;
+  const starterCount = Math.round(leagueSize * starterSlots);
 
-  // use the mean of replacement players totals
-  return mean(replacementPlayers.map((p) => p.points.total));
+  // Only include players who appeared in enough games to be a real starter
+  const eligible = players.filter((p) => p.Played >= MIN_GAMES_FOR_REPLACEMENT);
+  const sorted = sortByPoints(eligible);
+
+  // The replacement tier is the next leagueSize players after all starters are rostered
+  return sorted.slice(starterCount, starterCount + leagueSize);
+}
+
+function replacementPlayerValue(
+  players: FantasyDataPlayer[],
+  leagueSize: number
+) {
+  const pool = replacementPlayerPool(players, leagueSize);
+  return mean(pool.map((p) => p.points.total));
+}
+
+function replacementPlayerPerGame(
+  players: FantasyDataPlayer[],
+  leagueSize: number
+) {
+  const pool = replacementPlayerPool(players, leagueSize);
+  return mean(pool.map((p) => p.points.perGame));
 }
 
 interface PlayerWithVORP extends PlayerWithScore {
@@ -225,12 +251,12 @@ function playerWithVorp(replacementValue: number, replacementPerGame: number) {
 
 export function calculatePlayerVORP(
   playerStats: FantasyDataPlayer[],
-  position: string
+  position: string,
+  leagueSize: number = 12
 ): VorpResult {
   const players = playerStats.filter((p) => p.Position === position);
-  const replacementValue = replacementPlayerValue(players);
-  // TODO: is 16 the right number of games?
-  const replacementPerGame = Math.round(replacementValue / 16);
+  const replacementValue = replacementPlayerValue(players, leagueSize);
+  const replacementPerGame = replacementPlayerPerGame(players, leagueSize);
   return {
     players: sortByPoints(players).map(
       playerWithVorp(replacementValue, replacementPerGame)
@@ -240,12 +266,15 @@ export function calculatePlayerVORP(
   };
 }
 
-export function allPlayersWithVorp(playerStats): PlayerWithVORP[] {
-  const { players: qbs } = calculatePlayerVORP(playerStats, "QB");
-  const { players: rbs } = calculatePlayerVORP(playerStats, "RB");
-  const { players: wrs } = calculatePlayerVORP(playerStats, "WR");
-  const { players: tes } = calculatePlayerVORP(playerStats, "TE");
-  const { players: ks } = calculatePlayerVORP(playerStats, "K");
+export function allPlayersWithVorp(
+  playerStats: FantasyDataPlayer[],
+  leagueSize: number = 12
+): PlayerWithVORP[] {
+  const { players: qbs } = calculatePlayerVORP(playerStats, "QB", leagueSize);
+  const { players: rbs } = calculatePlayerVORP(playerStats, "RB", leagueSize);
+  const { players: wrs } = calculatePlayerVORP(playerStats, "WR", leagueSize);
+  const { players: tes } = calculatePlayerVORP(playerStats, "TE", leagueSize);
+  const { players: ks } = calculatePlayerVORP(playerStats, "K", leagueSize);
   return [...qbs, ...rbs, ...wrs, ...tes, ...ks];
 }
 
