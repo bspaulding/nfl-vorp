@@ -56,7 +56,7 @@ const scoring = {
   },
 };
 
-type FantasyDataPlayer = {
+export type FantasyDataPlayer = {
   PlayerID: number;
   Season: number;
   Team: string;
@@ -229,7 +229,7 @@ function replacementPlayerPerGame(
   return mean(pool.map((p) => p.points.perGame));
 }
 
-interface PlayerWithVORP extends PlayerWithScore {
+export interface PlayerWithVORP extends PlayerWithScore {
   vorpRaw: number;
   vorpPerGame: number;
 }
