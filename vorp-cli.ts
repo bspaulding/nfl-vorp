@@ -2,7 +2,9 @@ import { allPlayersWithVorp, calculatePlayerVORP } from "./vorp.ts";
 import { generateCSV } from "./vorp-csv.ts";
 
 const file = Deno.args[0];
+const leagueSize = Deno.args[1] ? parseInt(Deno.args[1], 10) : 12;
 console.log(`Reading stats from ${file}`);
+console.log(`League size: ${leagueSize}`);
 const playerStats = JSON.parse(await Deno.readTextFile(file));
 
 const outfile = "out.csv";
@@ -10,14 +12,15 @@ console.log(`Writing vorp to ${outfile}`);
 writeCSV(outfile);
 
 function writeCSV(fileName: string) {
-  const data = allPlayersWithVorp(playerStats);
+  const data = allPlayersWithVorp(playerStats, leagueSize);
   Deno.writeTextFile(fileName, generateCSV(data));
 }
 
 function printTop10(position: string) {
   const { players, replacementValue, replacementPerGame } = calculatePlayerVORP(
     playerStats,
-    position
+    position,
+    leagueSize
   );
 
   console.log(`-------------------------------------------`);

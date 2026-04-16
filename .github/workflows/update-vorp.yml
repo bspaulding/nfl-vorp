@@ -4,11 +4,17 @@ on:
   schedule:
     - cron: "30 6 * * 2"
   workflow_dispatch:
+    inputs:
+      league_size:
+        description: "Number of teams in the league"
+        default: "12"
+        required: false
 
 permissions:
   contents: read
 env:
   season: 2024
+  league_size: ${{ github.event.inputs.league_size || '12' }}
 jobs:
   fetch-player-data:
     runs-on: ubuntu-latest
@@ -29,7 +35,7 @@ jobs:
         name: player-data
         path: /player-data
     - name: Calculate VORP
-      run: deno run --allow-read --allow-write /vorp/vorp-cli.ts /player-data/${{ env.season }}.json
+      run: deno run --allow-read --allow-write /vorp/vorp-cli.ts /player-data/${{ env.season }}.json ${{ env.league_size }}
     - name: Upload vorp
       uses: actions/upload-artifact@v4
       with:
