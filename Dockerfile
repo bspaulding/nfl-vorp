@@ -12,5 +12,7 @@ COPY vorp-trade.ts vorp-trade.ts
 COPY vorp-trade-cli.ts vorp-trade-cli.ts
 COPY vorp-report.ts vorp-report.ts
 COPY vorp-report-cli.ts vorp-report-cli.ts
+COPY vorp-draft.ts vorp-draft.ts
+COPY vorp-draft-cli.ts vorp-draft-cli.ts
 
 ENTRYPOINT ["deno", "run", "--allow-read", "--allow-write", "vorp-cli.ts"]

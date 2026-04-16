@@ -93,6 +93,9 @@ async function handler(request: Request): Promise<Response> {
 
     case `/api/vorp/${season}/curve/summary`:
       return handleVorpCurve(season, "summary");
+
+    case `/api/vorp/${season}/draft/available`:
+      return handleDraftAvailable(request, season);
   }
 
   if (request.method === "POST" && url.pathname === `/api/vorp/${season}/trade`) {
@@ -172,6 +175,58 @@ async function handleTrade(
     const vorpData = allPlayersWithVorp(playerStats, leagueSize);
     const result = evaluateTrade(give, receive, vorpData);
     return new Response(JSON.stringify(result), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (e) {
+    return new Response(JSON.stringify({ error: e.message }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+}
+
+// GET /api/vorp/:season/draft/available
+// Query params:
+//   draftId    - Sleeper draft ID (server fetches current picks live)
+//   position   - filter to one position (QB / RB / WR / TE / K)
+//   leagueSize - default 12
+//   topN       - default 20
+async function handleDraftAvailable(
+  request: Request,
+  season: number
+): Promise<Response> {
+  try {
+    const { fetchAndBuildProjections } = await import("./vorp-projections.ts");
+    const { allPlayersWithVorp } = await import("./vorp.ts");
+    const {
+      createDraftState,
+      applySleeperPicks,
+      fetchSleeperDraftPicks,
+      fetchSleeperPlayerMap,
+      getAvailable,
+    } = await import("./vorp-draft.ts");
+
+    const url = new URL(request.url);
+    const draftId = url.searchParams.get("draftId");
+    const position = url.searchParams.get("position") ?? undefined;
+    const leagueSize = parseInt(url.searchParams.get("leagueSize") ?? "12", 10);
+    const topN = parseInt(url.searchParams.get("topN") ?? "20", 10);
+
+    const projections = await fetchAndBuildProjections(season);
+    const vorpData = allPlayersWithVorp(projections, leagueSize);
+    const state = createDraftState();
+
+    if (draftId) {
+      const [picks, playerMap] = await Promise.all([
+        fetchSleeperDraftPicks(draftId),
+        fetchSleeperPlayerMap(),
+      ]);
+      applySleeperPicks(state, picks, playerMap);
+    }
+
+    const available = getAvailable(state, vorpData, { position, topN });
+    return new Response(JSON.stringify(available), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
